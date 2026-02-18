@@ -1,0 +1,229 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>Special Moment</title>
+
+<style>
+*{box-sizing:border-box;margin:0;padding:0}
+body{
+  min-height:100vh;
+  display:flex;
+  justify-content:center;
+  align-items:center;
+  padding:24px;
+  overflow:hidden;
+  font-family:system-ui,-apple-system,"Apple SD Gothic Neo","Noto Sans KR",sans-serif;
+  background:
+    linear-gradient(rgba(0,0,0,.35),rgba(0,0,0,.35)),
+    url("01.jpg") center/cover no-repeat;
+  transition:background .6s ease;
+}
+
+.card{
+  width:100%;
+  max-width:420px;
+  background:rgba(255,255,255,.95);
+  border-radius:20px;
+  padding:32px;
+  text-align:center;
+  box-shadow:0 15px 40px rgba(0,0,0,.25);
+  z-index:10;
+}
+
+h1{
+  font-size:20px;
+  line-height:1.6;
+  margin-bottom:24px;
+}
+
+.btn-container{
+  position:relative;
+  width:280px;
+  height:80px;
+  margin:0 auto;
+}
+
+.btn{
+  position:absolute;
+  width:120px;
+  height:48px;
+  border:none;
+  border-radius:30px;
+  font-size:16px;
+  cursor:pointer;
+  transition:.15s;
+}
+
+.btn:active{transform:scale(.95)}
+
+.yes{left:0;background:#ff4d6d;color:#fff}
+.no{left:160px;background:#ddd;color:#111}
+
+.result{
+  margin-top:18px;
+  font-size:20px;
+  font-weight:700;
+  color:#ff4d6d;
+  display:none;
+}
+
+.heart{
+  position:fixed;
+  pointer-events:none;
+  animation:float 3s linear forwards;
+}
+@keyframes float{
+  from{transform:translateY(0);opacity:1}
+  to{transform:translateY(-350px);opacity:0}
+}
+
+#fireworks{
+  position:fixed;
+  top:0;left:0;
+  width:100%;height:100%;
+  pointer-events:none;
+  z-index:5;
+}
+</style>
+</head>
+
+<body>
+
+<canvas id="fireworks"></canvas>
+
+<div class="card">
+  <h1>나랑 평생 함께 할래? 💕</h1>
+
+  <div class="btn-container" id="btnArea">
+    <button class="btn yes" id="yesBtn">Yes</button>
+    <button class="btn no" id="noBtn">No</button>
+  </div>
+
+  <div class="result" id="result">❤️ 선택해줘서 고마워 ❤️</div>
+</div>
+
+<!-- 🎵 무료 CDN 음원 (바로 재생 가능) -->
+<audio id="bgm" loop>
+  <source src="https://cdn.pixabay.com/download/audio/2022/03/15/audio_c8b0f6d3c8.mp3?filename=carefree-112191.mp3" type="audio/mpeg">
+</audio>
+
+<script>
+(() => {
+
+const yesBtn = document.getElementById("yesBtn");
+const noBtn = document.getElementById("noBtn");
+const btnArea = document.getElementById("btnArea");
+const result = document.getElementById("result");
+const bgm = document.getElementById("bgm");
+
+/* 🎵 모바일 자동재생 정책 대응 */
+function startMusic(){
+  bgm.volume = 0.6;
+  bgm.play().catch(()=>{});
+}
+document.body.addEventListener("click", startMusic, { once:true });
+
+/* ❤️ 하트 */
+function createHearts(){
+  for(let i=0;i<25;i++){
+    const h=document.createElement("div");
+    h.className="heart";
+    h.textContent="❤️";
+    h.style.left=Math.random()*window.innerWidth+"px";
+    h.style.top=window.innerHeight+"px";
+    h.style.fontSize=(Math.random()*20+14)+"px";
+    document.body.appendChild(h);
+    setTimeout(()=>h.remove(),3000);
+  }
+}
+
+/* 🎆 폭죽 */
+const canvas=document.getElementById("fireworks");
+const ctx=canvas.getContext("2d");
+let particles=[];
+
+function resize(){
+  canvas.width=window.innerWidth;
+  canvas.height=window.innerHeight;
+}
+window.addEventListener("resize",resize);
+resize();
+
+function explode(x,y){
+  for(let i=0;i<80;i++){
+    particles.push({
+      x,y,
+      angle:Math.random()*Math.PI*2,
+      speed:Math.random()*5+2,
+      alpha:1,
+      color:`hsl(${Math.random()*360},100%,60%)`
+    });
+  }
+}
+
+function animate(){
+  ctx.clearRect(0,0,canvas.width,canvas.height);
+  particles.forEach((p,i)=>{
+    p.x+=Math.cos(p.angle)*p.speed;
+    p.y+=Math.sin(p.angle)*p.speed;
+    p.alpha-=0.02;
+
+    ctx.globalAlpha=p.alpha;
+    ctx.fillStyle=p.color;
+    ctx.beginPath();
+    ctx.arc(p.x,p.y,3,0,Math.PI*2);
+    ctx.fill();
+
+    if(p.alpha<=0) particles.splice(i,1);
+  });
+  ctx.globalAlpha=1;
+  requestAnimationFrame(animate);
+}
+animate();
+
+function startFireworks(){
+  for(let i=0;i<5;i++){
+    setTimeout(()=>{
+      explode(
+        Math.random()*canvas.width,
+        Math.random()*canvas.height/2
+      );
+    },i*400);
+  }
+}
+
+/* Yes 클릭 */
+yesBtn.addEventListener("click",()=>{
+  document.body.style.background=
+    'linear-gradient(rgba(0,0,0,.35),rgba(0,0,0,.35)),url("02.jpg") center/cover no-repeat';
+  result.style.display="block";
+  createHearts();
+  startFireworks();
+});
+
+/* No 도망 */
+function moveNo(){
+  const w=noBtn.offsetWidth;
+  const h=noBtn.offsetHeight;
+  const maxX=btnArea.clientWidth-w;
+  const maxY=btnArea.clientHeight-h;
+  noBtn.style.left=Math.random()*maxX+"px";
+  noBtn.style.top=Math.random()*maxY+"px";
+}
+noBtn.addEventListener("mouseenter",moveNo);
+noBtn.addEventListener("touchstart",(e)=>{
+  e.preventDefault();
+  moveNo();
+},{passive:false});
+noBtn.addEventListener("click",(e)=>{
+  e.preventDefault();
+  moveNo();
+});
+
+})();
+</script>
+
+</body>
+</html>
