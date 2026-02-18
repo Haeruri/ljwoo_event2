@@ -101,43 +101,59 @@ h1{font-size:20px;margin-bottom:24px}
 <script>
 (() => {
 
-/* =========================
-   🎵 Web Audio 배경음악 (절대 안막힘)
-========================= */
+/* =======================
+   🎵 로맨틱 패드 사운드
+======================= */
 let audioCtx;
+let masterGain;
+let musicInterval;
 let isPlaying=false;
 
 function startMusic(){
   if(isPlaying) return;
 
   audioCtx = new (window.AudioContext || window.webkitAudioContext)();
-  const gainNode = audioCtx.createGain();
-  gainNode.gain.value = 0.2;
-  gainNode.connect(audioCtx.destination);
+  masterGain = audioCtx.createGain();
+  masterGain.gain.value = 0.25;
+  masterGain.connect(audioCtx.destination);
 
-  function playNote(freq,time){
-    const osc = audioCtx.createOscillator();
-    osc.type="sine";
-    osc.frequency.value=freq;
-    osc.connect(gainNode);
-    osc.start(audioCtx.currentTime+time);
-    osc.stop(audioCtx.currentTime+time+0.4);
+  function playChord(freqs, startTime){
+    freqs.forEach(freq=>{
+      const osc = audioCtx.createOscillator();
+      const gain = audioCtx.createGain();
+
+      osc.type = "triangle"; // 따뜻한 패드 느낌
+      osc.frequency.value = freq;
+
+      gain.gain.setValueAtTime(0, startTime);
+      gain.gain.linearRampToValueAtTime(0.4, startTime + 0.2); // 부드러운 attack
+      gain.gain.exponentialRampToValueAtTime(0.001, startTime + 2.5); // 긴 decay
+
+      osc.connect(gain);
+      gain.connect(masterGain);
+
+      osc.start(startTime);
+      osc.stop(startTime + 2.5);
+    });
   }
 
-  // 반복되는 간단한 로맨틱 멜로디
-  setInterval(()=>{
-    playNote(523.25,0);   // C
-    playNote(659.25,0.3); // E
-    playNote(783.99,0.6); // G
-    playNote(659.25,0.9);
-  },1200);
+  function schedule(){
+    const now = audioCtx.currentTime;
+    playChord([261.63,329.63,392.00], now);        // C
+    playChord([196.00,246.94,392.00], now+2.5);    // G
+    playChord([220.00,261.63,329.63], now+5);      // Am
+    playChord([174.61,220.00,349.23], now+7.5);    // F
+  }
+
+  schedule();
+  musicInterval = setInterval(schedule, 10000);
 
   isPlaying=true;
 }
 
-/* =========================
+/* =======================
    ❤️ 하트
-========================= */
+======================= */
 function createHearts(){
   for(let i=0;i<30;i++){
     const h=document.createElement("div");
@@ -151,9 +167,9 @@ function createHearts(){
   }
 }
 
-/* =========================
+/* =======================
    🎆 폭죽
-========================= */
+======================= */
 const canvas=document.getElementById("canvas");
 const ctx=canvas.getContext("2d");
 let fireworks=[];
@@ -236,16 +252,16 @@ function launchFireworks(){
   }
 }
 
-/* =========================
+/* =======================
    버튼 이벤트
-========================= */
+======================= */
 const yesBtn=document.getElementById("yesBtn");
 const noBtn=document.getElementById("noBtn");
 const btnArea=document.getElementById("btnArea");
 const result=document.getElementById("result");
 
 yesBtn.addEventListener("click",()=>{
-  startMusic(); // ✅ 클릭 기반 재생
+  startMusic(); // 음악 시작 (이미 통합됨)
   document.body.style.background=
     'linear-gradient(rgba(0,0,0,.35),rgba(0,0,0,.35)),url("02.jpg") center/cover no-repeat';
   result.style.display="block";
