@@ -3,10 +3,11 @@
 <head>
 <meta charset="UTF-8" />
 <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-<title>Special Moment</title>
+<title>한별이한테 보내는 이벤트2</title>
 
 <style>
 *{box-sizing:border-box;margin:0;padding:0}
+
 body{
   min-height:100vh;
   display:flex;
@@ -18,7 +19,7 @@ body{
   background:
     linear-gradient(rgba(0,0,0,.35),rgba(0,0,0,.35)),
     url("01.jpg") center/cover no-repeat;
-  transition:background .6s ease;
+  transition:background .8s ease;
 }
 
 .card{
@@ -32,30 +33,23 @@ body{
   z-index:10;
 }
 
-h1{
-  font-size:20px;
-  line-height:1.6;
-  margin-bottom:24px;
-}
+h1{font-size:20px;margin-bottom:24px}
 
 .btn-container{
   position:relative;
   width:280px;
-  height:80px;
+  height:90px;
   margin:0 auto;
 }
 
 .btn{
   position:absolute;
-  width:120px;
-  height:48px;
-  border:none;
-  border-radius:30px;
+  width:120px;height:48px;
+  border:none;border-radius:30px;
   font-size:16px;
   cursor:pointer;
   transition:.15s;
 }
-
 .btn:active{transform:scale(.95)}
 
 .yes{left:0;background:#ff4d6d;color:#fff}
@@ -76,10 +70,10 @@ h1{
 }
 @keyframes float{
   from{transform:translateY(0);opacity:1}
-  to{transform:translateY(-350px);opacity:0}
+  to{transform:translateY(-400px);opacity:0}
 }
 
-#fireworks{
+#canvas{
   position:fixed;
   top:0;left:0;
   width:100%;height:100%;
@@ -91,7 +85,7 @@ h1{
 
 <body>
 
-<canvas id="fireworks"></canvas>
+<canvas id="canvas"></canvas>
 
 <div class="card">
   <h1>나랑 평생 함께 할래? 💕</h1>
@@ -104,60 +98,103 @@ h1{
   <div class="result" id="result">❤️ 선택해줘서 고마워 ❤️</div>
 </div>
 
-<!-- 🎵 무료 CDN 음원 (바로 재생 가능) -->
-<audio id="bgm" loop>
-  <source src="https://cdn.pixabay.com/download/audio/2022/03/15/audio_c8b0f6d3c8.mp3?filename=carefree-112191.mp3" type="audio/mpeg">
-</audio>
-
 <script>
 (() => {
 
-const yesBtn = document.getElementById("yesBtn");
-const noBtn = document.getElementById("noBtn");
-const btnArea = document.getElementById("btnArea");
-const result = document.getElementById("result");
-const bgm = document.getElementById("bgm");
+/* =========================
+   🎵 Web Audio 배경음악 (절대 안막힘)
+========================= */
+let audioCtx;
+let isPlaying=false;
 
-/* 🎵 모바일 자동재생 정책 대응 */
 function startMusic(){
-  bgm.volume = 0.6;
-  bgm.play().catch(()=>{});
-}
-document.body.addEventListener("click", startMusic, { once:true });
+  if(isPlaying) return;
 
-/* ❤️ 하트 */
+  audioCtx = new (window.AudioContext || window.webkitAudioContext)();
+  const gainNode = audioCtx.createGain();
+  gainNode.gain.value = 0.2;
+  gainNode.connect(audioCtx.destination);
+
+  function playNote(freq,time){
+    const osc = audioCtx.createOscillator();
+    osc.type="sine";
+    osc.frequency.value=freq;
+    osc.connect(gainNode);
+    osc.start(audioCtx.currentTime+time);
+    osc.stop(audioCtx.currentTime+time+0.4);
+  }
+
+  // 반복되는 간단한 로맨틱 멜로디
+  setInterval(()=>{
+    playNote(523.25,0);   // C
+    playNote(659.25,0.3); // E
+    playNote(783.99,0.6); // G
+    playNote(659.25,0.9);
+  },1200);
+
+  isPlaying=true;
+}
+
+/* =========================
+   ❤️ 하트
+========================= */
 function createHearts(){
-  for(let i=0;i<25;i++){
+  for(let i=0;i<30;i++){
     const h=document.createElement("div");
     h.className="heart";
     h.textContent="❤️";
     h.style.left=Math.random()*window.innerWidth+"px";
     h.style.top=window.innerHeight+"px";
-    h.style.fontSize=(Math.random()*20+14)+"px";
+    h.style.fontSize=(Math.random()*20+16)+"px";
     document.body.appendChild(h);
     setTimeout(()=>h.remove(),3000);
   }
 }
 
-/* 🎆 폭죽 */
-const canvas=document.getElementById("fireworks");
+/* =========================
+   🎆 폭죽
+========================= */
+const canvas=document.getElementById("canvas");
 const ctx=canvas.getContext("2d");
+let fireworks=[];
 let particles=[];
+resize();
+window.addEventListener("resize",resize);
 
 function resize(){
   canvas.width=window.innerWidth;
   canvas.height=window.innerHeight;
 }
-window.addEventListener("resize",resize);
-resize();
+
+class Firework{
+  constructor(){
+    this.x=Math.random()*canvas.width;
+    this.y=canvas.height;
+    this.targetY=Math.random()*canvas.height/2;
+    this.speed=5;
+    this.exploded=false;
+  }
+  update(){
+    this.y-=this.speed;
+    if(this.y<=this.targetY&&!this.exploded){
+      this.exploded=true;
+      explode(this.x,this.y);
+    }
+  }
+  draw(){
+    ctx.fillStyle="#fff";
+    ctx.fillRect(this.x,this.y,2,10);
+  }
+}
 
 function explode(x,y){
-  for(let i=0;i<80;i++){
+  for(let i=0;i<100;i++){
     particles.push({
       x,y,
       angle:Math.random()*Math.PI*2,
       speed:Math.random()*5+2,
       alpha:1,
+      gravity:0.05,
       color:`hsl(${Math.random()*360},100%,60%)`
     });
   }
@@ -165,10 +202,19 @@ function explode(x,y){
 
 function animate(){
   ctx.clearRect(0,0,canvas.width,canvas.height);
+
+  fireworks.forEach((f,i)=>{
+    f.update();
+    f.draw();
+    if(f.exploded) fireworks.splice(i,1);
+  });
+
   particles.forEach((p,i)=>{
     p.x+=Math.cos(p.angle)*p.speed;
     p.y+=Math.sin(p.angle)*p.speed;
-    p.alpha-=0.02;
+    p.speed*=0.98;
+    p.y+=p.gravity;
+    p.alpha-=0.015;
 
     ctx.globalAlpha=p.alpha;
     ctx.fillStyle=p.color;
@@ -178,32 +224,35 @@ function animate(){
 
     if(p.alpha<=0) particles.splice(i,1);
   });
+
   ctx.globalAlpha=1;
   requestAnimationFrame(animate);
 }
 animate();
 
-function startFireworks(){
+function launchFireworks(){
   for(let i=0;i<5;i++){
-    setTimeout(()=>{
-      explode(
-        Math.random()*canvas.width,
-        Math.random()*canvas.height/2
-      );
-    },i*400);
+    setTimeout(()=>fireworks.push(new Firework()),i*500);
   }
 }
 
-/* Yes 클릭 */
+/* =========================
+   버튼 이벤트
+========================= */
+const yesBtn=document.getElementById("yesBtn");
+const noBtn=document.getElementById("noBtn");
+const btnArea=document.getElementById("btnArea");
+const result=document.getElementById("result");
+
 yesBtn.addEventListener("click",()=>{
+  startMusic(); // ✅ 클릭 기반 재생
   document.body.style.background=
     'linear-gradient(rgba(0,0,0,.35),rgba(0,0,0,.35)),url("02.jpg") center/cover no-repeat';
   result.style.display="block";
   createHearts();
-  startFireworks();
+  launchFireworks();
 });
 
-/* No 도망 */
 function moveNo(){
   const w=noBtn.offsetWidth;
   const h=noBtn.offsetHeight;
